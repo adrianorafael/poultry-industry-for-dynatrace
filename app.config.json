@@ -1,0 +1,12 @@
+{
+  "$schema": "./.dt-app/app.config.schema.json",
+  "environmentUrl": "https://YOUR-ENVIRONMENT.apps.dynatrace.com/",
+  "app": {
+    "name": "Poultry Industry",
+    "version": "0.1.0",
+    "description": "Poultry plant in motion: from the live-bird scale to the NF-e",
+    "id": "my.poultry.industry",
+    "icon": "./ui/assets/app-icon.svg",
+    "scopes": []
+  }
+}

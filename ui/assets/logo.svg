@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 48" width="196" height="48" role="img" aria-label="Poultry Industry">
+  <rect x="2" y="4" width="40" height="40" rx="10" fill="#8C1D2F"/>
+  <ellipse cx="20.5" cy="25" rx="9.5" ry="7" fill="#FFF4DF"/>
+  <path d="M12.3 23 C 9 19, 9.8 14.5, 14.3 15.8 C 12.4 18.3, 13 20.8, 15 22.2 Z" fill="#FFF4DF"/>
+  <circle cx="28.8" cy="16.8" r="4.5" fill="#FFF4DF"/>
+  <path d="M26.2 12.6 C 26.9 10.4, 28.5 10.4, 28.5 12.3 C 29.1 10.1, 31.1 10.4, 30.8 12.6 Z" fill="#F2A541"/>
+  <path d="M32.9 16.8 L 36.4 18.1 L 32.9 19.4 Z" fill="#F2A541"/>
+  <path d="M8 38 H36" stroke="#F2A541" stroke-width="2.2" stroke-dasharray="4 3"/>
+  <text x="52" y="21" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="800" fill="#8C1D2F" letter-spacing="0.2">Poultry</text>
+  <text x="52" y="39" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="800" fill="#D98A1E" letter-spacing="0.2">Industry</text>
+</svg>
