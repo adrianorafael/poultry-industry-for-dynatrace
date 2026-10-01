@@ -6,7 +6,7 @@ import { DataTable, type DataTableColumnDef } from "@dynatrace/strato-components
 import { Heading, Paragraph, Text } from "@dynatrace/strato-components/typography";
 import { SourceTag } from "../components/SourceTag";
 import { StatusPill } from "../components/StatusPill";
-import { OVERTIME_MAX_H, PLAN_RATE, SATURDAY_BIRDS, SATURDAY_SHIFT_H } from "../sim/model";
+import { PLAN_RATE } from "../sim/model";
 import { fmtDate, fmtH, fmtHour } from "../sim/time";
 import type { PcpDayView, PcpView } from "../sim/types";
 import { LEVEL_COLOR, LEVEL_LABEL, PCP_COLOR } from "../theme/colors";
@@ -24,7 +24,7 @@ const actual = (d: PcpDayView, m: Metric) => (m === "aves" ? d.actualBirds : d.a
 const short = (v: number, m: Metric) => (m === "aves" ? `${fmtDec(v / 1000, 1)} mil` : fmtT(v, 0));
 
 /** Month calendar: plan and actual per day, overtime and extra days. */
-const Calendar = ({ pcp, metric }: { pcp: PcpView; metric: Metric }) => {
+const Calendar = ({ pcp, metric, onToggleExtra }: { pcp: PcpView; metric: Metric; onToggleExtra: (date: number) => void }) => {
   const lead = pcp.days[0]?.dow ?? 0;
   return (
     <div className="ff-cal" role="grid" aria-label={`Calendário do PCP de ${pcp.monthLabel}`}>
@@ -51,8 +51,11 @@ const Calendar = ({ pcp, metric }: { pcp: PcpView; metric: Metric }) => {
         ]
           .filter(Boolean)
           .join("\n");
-        return (
-          <div key={d.date} role="gridcell" title={tip} className={`ff-cal-cell ff-cal-${d.when} ${off ? "ff-cal-off" : ""} ${d.extraDay ? "ff-cal-extra" : ""}`}>
+        const cls = `ff-cal-cell ff-cal-${d.when} ${off ? "ff-cal-off" : ""} ${d.extraDay ? "ff-cal-extra" : ""}`;
+        // a future Saturday, Sunday or holiday can be (un)scheduled as an extra slaughter day
+        const toggle = d.when === "future" && d.kind !== "util";
+        const body = (
+          <>
             <div className="ff-cal-top">
               <b>{d.dom}</b>
               <span className="ff-cal-badges">
@@ -72,6 +75,23 @@ const Calendar = ({ pcp, metric }: { pcp: PcpView; metric: Metric }) => {
                 </span>
               </>
             )}
+          </>
+        );
+        return toggle ? (
+          <button
+            key={d.date}
+            type="button"
+            role="gridcell"
+            title={`${tip}\n${d.extraDay ? "Clique para cancelar o dia extra" : "Clique para programar um dia extra de abate"}`}
+            className={`${cls} ff-cal-toggle`}
+            aria-pressed={d.extraDay}
+            onClick={() => onToggleExtra(d.date)}
+          >
+            {body}
+          </button>
+        ) : (
+          <div key={d.date} role="gridcell" title={tip} className={cls}>
+            {body}
           </div>
         );
       })}
@@ -79,17 +99,25 @@ const Calendar = ({ pcp, metric }: { pcp: PcpView; metric: Metric }) => {
   );
 };
 
+const OVERTIME_OPTIONS: [string, number | null][] = [
+  ["livre", null],
+  ["1", 1],
+  ["2", 2],
+  ["3", 3],
+];
+
 const RecoveryCard = ({ pcp }: { pcp: PcpView }) => {
-  const { engine } = useApp();
+  const { engine, setPrefs } = useApp();
   const r = pcp.recovery;
   const t = pcp.today;
   const level = r.kind === "none" ? "ok" : r.kind === "unrecoverable" ? "critical" : "warning";
-  const saturdays = pcp.days.filter((d) => d.kind === "sabado" && d.when === "future");
+  const freeDays = pcp.days.filter((d) => d.kind !== "util" && d.when === "future").slice(0, 8);
   const canAdd = r.overtimeToday > 0;
   const apply = () => {
     if (r.suggestTodayH > 0) engine.approveOvertime(t.extraH + r.suggestTodayH);
-    if (r.kind === "saturday" && r.saturday !== undefined) engine.toggleSaturday(r.saturday);
+    if (r.kind === "extra-day" && r.extraDay !== undefined) engine.toggleExtraDay(r.extraDay);
   };
+  const otValue = OVERTIME_OPTIONS.find(([, v]) => v === pcp.config.overtimeMaxH)?.[0] ?? "livre";
   return (
     <section className={`ff-panel ff-recovery ff-recovery-${level}`}>
       <div className="ff-recovery-top">
@@ -101,7 +129,7 @@ const RecoveryCard = ({ pcp }: { pcp: PcpView }) => {
       <strong className="ff-recovery-title">{r.title}</strong>
       <Text>{r.detail}</Text>
       <div className="ff-recovery-actions">
-        <Button variant="accent" color="primary" disabled={r.kind === "none" || (r.suggestTodayH <= 0 && r.kind !== "saturday")} onClick={apply}>
+        <Button variant="accent" color="primary" disabled={r.kind === "none" || (r.suggestTodayH <= 0 && r.kind !== "extra-day")} onClick={apply}>
           Aplicar recomendação
         </Button>
       </div>
@@ -114,32 +142,58 @@ const RecoveryCard = ({ pcp }: { pcp: PcpView }) => {
         <Button size="condensed" disabled={!canAdd} onClick={() => engine.approveOvertime(t.extraH + 0.25)} aria-label="Mais 15 minutos de hora extra">
           +15 min
         </Button>
-        <Text className="ff-muted">
-          abate até {fmtHour(t.endHour)} · limite {fmtH(OVERTIME_MAX_H)} por dia (CLT, art. 59)
-        </Text>
+        <Text className="ff-muted">abate até {fmtHour(t.endHour)}</Text>
       </div>
       <div className="ff-recovery-row">
-        <span className="ff-card-k">Sábados extras</span>
-        {saturdays.length ? (
-          saturdays.map((d) => (
+        <span className="ff-card-k">Dias extras</span>
+        {freeDays.length ? (
+          freeDays.map((d) => (
             <Button
               key={d.date}
               size="condensed"
               variant={d.extraDay ? "emphasized" : "default"}
               color={d.extraDay ? "primary" : "neutral"}
-              onClick={() => engine.toggleSaturday(d.date)}
+              onClick={() => engine.toggleExtraDay(d.date)}
               aria-pressed={d.extraDay}
             >
               {d.extraDay ? "✓ " : ""}
-              {fmtDate(d.date)}
+              {WEEKDAYS[d.dow].toLowerCase()} {fmtDate(d.date)}
             </Button>
           ))
         ) : (
-          <Text className="ff-muted">não há sábado livre até o fim do mês</Text>
+          <Text className="ff-muted">não há sábado, domingo ou feriado livre até o fim do mês</Text>
         )}
-        <Text className="ff-muted">
-          1 turno de {fmtH(SATURDAY_SHIFT_H)} ≈ {fmtInt(SATURDAY_BIRDS)} aves
-        </Text>
+      </div>
+      <div className="ff-recovery-config">
+        <span className="ff-card-k">Configuração do PCP</span>
+        <div className="ff-recovery-row">
+          <Text className="ff-muted">Limite de hora extra por dia</Text>
+          <ToggleButtonGroup
+            value={otValue}
+            onChange={(v) => setPrefs({ pcpOvertimeMaxH: OVERTIME_OPTIONS.find(([k]) => k === v)?.[1] ?? null })}
+            aria-label="Limite de hora extra por dia"
+          >
+            <ToggleButtonGroup.Item value="livre">Livre (até 03:00)</ToggleButtonGroup.Item>
+            <ToggleButtonGroup.Item value="1">1 h</ToggleButtonGroup.Item>
+            <ToggleButtonGroup.Item value="2">2 h</ToggleButtonGroup.Item>
+            <ToggleButtonGroup.Item value="3">3 h</ToggleButtonGroup.Item>
+          </ToggleButtonGroup>
+        </div>
+        <div className="ff-recovery-row">
+          <Text className="ff-muted">Dia extra de abate</Text>
+          <ToggleButtonGroup
+            value={String(pcp.config.extraDayShifts)}
+            onChange={(v) => setPrefs({ pcpExtraShifts: v === "2" ? 2 : 1 })}
+            aria-label="Turnos do dia extra"
+          >
+            <ToggleButtonGroup.Item value="1">1 turno</ToggleButtonGroup.Item>
+            <ToggleButtonGroup.Item value="2">2 turnos</ToggleButtonGroup.Item>
+          </ToggleButtonGroup>
+          <Text className="ff-muted">
+            {fmtH(pcp.extraDayH)} ≈ {fmtInt(pcp.extraDayBirds)} aves
+          </Text>
+        </div>
+        <Text className="ff-muted">Regras de jornada e pagamento ficam com o RH: o plano aceita o que estiver configurado aqui.</Text>
       </div>
       <SourceTag text="Calendário do PCP (APS/ERP) como lookup + poultry.bird.hung por hora; a projeção usa o ritmo planejado. Aprovar a hora extra pode disparar um Workflow para o PCP e o fomento (escala de apanha)" />
     </section>
@@ -160,7 +214,7 @@ const COLUMNS: DataTableColumnDef<PcpDayView>[] = [
 
 export const Plan = () => {
   const snap = useSnapshot();
-  const { prefs } = useApp();
+  const { prefs, engine } = useApp();
   const [metric, setMetric] = useState<Metric>("aves");
   const pcp = snap.pcp;
   const t = pcp.today;
@@ -241,8 +295,8 @@ export const Plan = () => {
         <div>
           <Heading level={2}>Plano do PCP · {pcp.monthLabel}</Heading>
           <Text className="ff-muted">
-            O PCP programa, para cada dia, as aves a abater e os quilos de produto. Os incidentes da linha comprometem o plano; para fechar a meta do mês, o
-            PCP aprova hora extra (até {fmtH(OVERTIME_MAX_H)} por dia) ou um dia extra de abate. Dia de produção: 03:00 às 03:00.
+            O PCP programa, para cada dia, as aves a abater e os quilos de produto. Os incidentes da linha comprometem o plano; para fechar o dia ou a meta do
+            mês, o PCP aprova hora extra ou um dia extra de abate. Dia de produção: 03:00 às 03:00.
           </Text>
         </div>
         <ToggleButtonGroup value={metric} onChange={(v) => setMetric(v as Metric)} aria-label="Unidade do calendário">
@@ -276,10 +330,11 @@ export const Plan = () => {
               Calendário diário do PCP ({metric === "aves" ? "aves abatidas" : "produto embalado"})
             </Heading>
             <span className="ff-cal-legend ff-muted">
-              <i className="ff-cal-he">HE</i> hora extra · <i className="ff-cal-x">extra</i> dia extra · <i className="ff-cal-loss">!</i> perda
+              <i className="ff-cal-he">HE</i> hora extra · <i className="ff-cal-x">extra</i> dia extra · <i className="ff-cal-loss">!</i> perda · clique num
+              fim de semana ou feriado futuro para programar um dia extra
             </span>
           </div>
-          <Calendar pcp={pcp} metric={metric} />
+          <Calendar pcp={pcp} metric={metric} onToggleExtra={(date) => engine.toggleExtraDay(date)} />
           <SourceTag text="Plano diário do PCP (APS/ERP) como tabela de lookup no Grail; realizado = poultry.bird.hung e poultry.box.packed somados por dia de produção" />
         </section>
         <div className="ff-plan-side">

@@ -174,7 +174,7 @@ function scenario(id: ScenarioId, plantMin: number): { e: Engine; clock: { now: 
   check("pcp/tunnel: birds behind the plan to now", -p.today.deltaBirds, 8000, 40000);
   check("pcp/tunnel: day projected below plan", p.today.planBirds - p.today.projectedBirds, 5000, 40000);
   check("pcp/tunnel: overtime today is recommended", p.recovery.kind === "overtime-today" ? 1 : 0, 1, 1);
-  check("pcp/tunnel: recommended overtime (h)", p.recovery.suggestTodayH, 0.25, 2);
+  check("pcp/tunnel: recommended overtime (h)", p.recovery.suggestTodayH, 0.25, 3.5);
   check("pcp/tunnel: Intelligence raises the plan risk", e.getSnapshot().problems.some((x) => x.id === "pcp-forecast" && x.cta?.overtimeH) ? 1 : 0, 1, 1);
   const note = e.getSnapshot().problems.find((x) => x.scenario === "tunnel")?.impacts[0]?.note ?? "";
   check("pcp/tunnel: incident shows its cost in plan hours", note.includes("abate no plano") ? 1 : 0, 1, 1);
@@ -206,11 +206,39 @@ function scenario(id: ScenarioId, plantMin: number): { e: Engine; clock: { now: 
   run(e, 1, clock);
   const p = e.getSnapshot().pcp;
   check("pcp/lost day: recovery hours", p.recovery.hours, 8, 20);
-  check("pcp/lost day: a Saturday shift is recommended", p.recovery.kind === "saturday" ? 1 : 0, 1, 1);
+  check("pcp/lost day: an extra slaughter day is recommended", p.recovery.kind === "extra-day" ? 1 : 0, 1, 1);
+  check("pcp/lost day: the extra day is a Saturday", new Date(p.recovery.extraDay ?? 0).getDay(), 6, 6);
   const before = p.month.gapBirds;
-  e.toggleSaturday(p.recovery.saturday ?? 0);
+  e.toggleExtraDay(p.recovery.extraDay ?? 0);
   const after = e.getSnapshot().pcp.month.gapBirds;
-  check("pcp/lost day: one Saturday shift closes (birds)", before - after, 120000, 130000);
+  check("pcp/lost day: a one-shift extra day closes (birds)", before - after, 120000, 130000);
+  e.toggleExtraDay(p.recovery.extraDay ?? 0);
+  e.setPcpConfig({ extraDayShifts: 2 });
+  e.toggleExtraDay(e.getSnapshot().pcp.recovery.extraDay ?? 0);
+  check("pcp/lost day: a two-shift extra day closes (birds)", before - e.getSnapshot().pcp.month.gapBirds, 250000, 260000);
+}
+{
+  // labor rules are HR's: overtime goes as far as configured, bounded only by the production day (03:00)
+  const { e, clock } = fresh(new Date(2026, 8, 23, 20, 0, 0).getTime());
+  e.approveOvertime(3.5);
+  check("pcp/config: 3h30 of overtime accepted by default", e.getSnapshot().pcp.today.extraH, 3.5, 3.5);
+  e.approveOvertime(9);
+  check("pcp/config: overtime bounded by the end of the production day (h)", e.getSnapshot().pcp.today.extraH, 3.5, 3.75);
+  e.setPcpConfig({ overtimeMaxH: 1 });
+  check("pcp/config: a configured limit trims the approved overtime (h)", e.getSnapshot().pcp.today.extraH, 1, 1);
+  e.setPcpConfig({ overtimeMaxH: null });
+  e.approveOvertime(3.5);
+  run(e, 6 * 60, clock);
+  const s = e.getSnapshot();
+  check("pcp/config: still slaughtering at 02:00 (birds/h)", s.kpi.lineRate, 10000, 15500);
+  check("pcp/config: 02:00 still belongs to the production day of the 23rd", new Date(s.prodDate).getDate(), 23, 23);
+  run(e, 65, clock);
+  const kgAt3 = e.getSnapshot().pcp.days.find((d) => d.dom === 23)?.actualKg ?? 0;
+  run(e, 100, clock);
+  const s2 = e.getSnapshot();
+  const kgLater = s2.pcp.days.find((d) => d.dom === 23)?.actualKg ?? 0;
+  check("pcp/config: boxes packed after 03:00 count on the slaughter day (t)", (kgLater - kgAt3) / 1000, 15, 60);
+  check("pcp/config: the new production day starts empty (t)", s2.kpi.finishedT, 0, 0);
 }
 
 console.log(failures ? `\n${failures} calibration check(s) failed` : "\nAll calibration checks passed");

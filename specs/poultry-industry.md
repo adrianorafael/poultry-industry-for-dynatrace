@@ -178,23 +178,20 @@ extra de abate caso precisem recuperar a meta de produção do mês."*
   transporte**: as aves que chegam precisam ser abatidas no mesmo dia (bem-estar, DOA, perda de
   peso). As que ficam nos integrados continuam ganhando peso e consumindo ração e empurram o
   alojamento do próximo lote.
-- **Como se recupera.** (1) **Hora extra** no mesmo dia ou nos dias seguintes: a CLT
-  (art. 59) permite acrescer **até 2 horas** à jornada diária, com remuneração **pelo menos 50%**
-  superior à da hora normal. (2) **Dia extra** de abate: com jornada de 8h48 de segunda a sexta
-  (44 h semanais, sábado compensado), o sábado é o dia natural de recuperação — um turno abate
-  ~127 mil aves; domingos e feriados trabalhados sem folga compensatória são pagos em dobro
-  (Súmula 146 do TST), por isso ficam como último recurso. A escala ainda precisa respeitar as
-  pausas da NR-36 (frigoríficos), o que limita na prática quantas horas extras seguidas fazem
-  sentido.
+- **Como se recupera.** (1) **Hora extra** no mesmo dia ou nos dias seguintes. (2) **Dia extra**
+  de abate num dia sem abate planejado — normalmente o sábado (com turnos de 8h48 de segunda a
+  sexta, um turno abate ~127 mil aves), ou domingo e feriado. **Regras trabalhistas ficam fora do
+  app** (decisão do dono, 2026-10-01: "esse app não precisa se preocupar com CLT; primeiro por ser
+  demo, segundo por ser atribuição dos sistemas de RH; aqui aceita o que for configurado"): o
+  limite de hora extra por dia e os turnos do dia extra são **configurações do PCP**, e o único
+  limite físico é o fim do dia de produção (03:00).
 - **O que importa observar.** Aderência ao plano **até agora** (não só no fim do dia), projeção do
   fechamento do dia e do mês no ritmo planejado, custo de cada incidente em **horas de abate** e
   a decisão (hora extra × sábado) a tempo de o fomento reprogramar a apanha e o transporte.
 - **Dia de produção.** Para que o turno 2, a hora extra e as caixas embaladas depois da
   meia-noite contem no dia em que o abate começou, o dia de produção vai das **03:00 às 03:00**.
 
-Fontes: [CLT, art. 59 (resumo)](https://jus.com.br/artigos/93201/conceito-legal-sobre-horas-extras);
-[Súmula 146 do TST](https://flashapp.com.br/blog/trabalhar-na-folga-sumula-146);
-[Embrapa — planejamento de aviários pela necessidade diária de abate](https://www.infoteca.cnptia.embrapa.br/infoteca/handle/doc/439743).
+Fonte: [Embrapa — planejamento de aviários pela necessidade diária de abate](https://www.infoteca.cnptia.embrapa.br/infoteca/handle/doc/439743).
 
 ---
 
@@ -226,7 +223,8 @@ gargalo **e a sua propagação** ao longo da cadeia, sem nenhum dado no ambiente
 | Tempo | Relógio da planta no fuso do visitante; velocidades **1× · 10× · 60×** (padrão **60×**: 1 min = 1 h) | Caminhões e cargas acontecem na escala de horas |
 | Incidentes | Rodam no **tempo da planta** (sem replay com números roteirizados): os impactos saem do próprio modelo | A propagação do gargalo é *emergente*, não desenhada |
 | Marca | Fictícia, igual ao nome do app | Mesmo padrão do Multi-lane Free Flow |
-| Plano do PCP | Calendário do mês com plano diário (aves e kg), aderência até agora, projeção do dia e do mês e recomendação de hora extra / sábado extra, com aprovação em um clique | Pedido do dono (2026-10-01): os incidentes da linha comprometem o plano |
+| Plano do PCP | Calendário do mês com plano diário (aves e kg), aderência até agora, projeção do dia e do mês e recomendação de hora extra / dia extra, com aprovação em um clique | Pedido do dono (2026-10-01): os incidentes da linha comprometem o plano |
+| Regras trabalhistas | Fora do app: limite de hora extra e turnos do dia extra são configurações do PCP (padrão: hora extra livre até 03:00, dia extra de 1 turno) | Dono (2026-10-01): demo, e jornada é atribuição dos sistemas de RH |
 | Strato | Strato onde houver componente; planta, calendário, pipeline da NF-e e partículas são SVG/CSS próprios | O dono pediu flexibilidade, como no Multi-lane Free Flow (2026-10-01) |
 
 ### A planta simulada (calibração)
@@ -238,7 +236,7 @@ gargalo **e a sua propagação** ao longo da cadeia, sem nenhum dado no ambiente
 | Aves por dia | ~256 mil (~729 t de peso vivo) |
 | Dia de produção | 03:00 → 03:00 (o turno 2, a hora extra e as caixas embaladas depois da meia-noite ficam no dia do abate) |
 | Plano do PCP | dias úteis (seg–sex, sem feriados nacionais): ~255 mil aves (±0,8% por lote) e ~575 t · ritmo de planejamento 14.500 aves/h · meta do mês = soma dos dias úteis |
-| Recuperação | hora extra em passos de 15 min, até 2 h/dia (CLT art. 59) · sábado extra = 1 turno de 8h48 ≈ 127.600 aves · histórico sintético do mês (perdas, hora extra e sábados) antes do dia da sessão |
+| Recuperação | hora extra em passos de 15 min, até o limite configurado (padrão: livre, até as 03:00 do dia de produção) · dia extra em sábado, domingo ou feriado com 1 turno (≈ 127.600 aves, padrão) ou 2 turnos (≈ 255.200 aves) · a partir de 6 h a recuperar, o PCP prefere um dia extra a espalhar hora extra · caixas embaladas depois das 03:00 contam no dia do abate · histórico sintético do mês (perdas, hora extra até 2 h e sábados extras) antes do dia da sessão |
 | Peso vivo médio | 2,85 kg |
 | Caminhão de aves vivas | 4.200 aves (~12 t líquidas), tara ~16,5 t · ~61 por dia · recebimento 03:30–22:30 |
 | Galpão de espera | 14 baias · estoque-alvo 5 caminhões · espera-alvo < 2 h |
@@ -266,10 +264,12 @@ NF-e p95 1,2–2,6 s · saúde 90–97 · dia completo: 240–270 mil aves, 520�
 (ex.: túnel → antecâmara ≥ 40% e linha abaixo de 90% do plano em até 3 h de planta; SEFAZ → ao menos
 uma carga aguardando NF-e antes da SVC-RS e fila drenada depois dela). **PCP:** plano do dia
 250–260 mil aves; aderência às 11:00 entre 97% e 103% e status OK; fim de um dia normal 98–104%;
-túnel por 3 h → dia abaixo do plano e recomendação de 15 min a 2 h de hora extra hoje, com card da
-Intelligence e aprovação em um clique; 1 h aprovada soma 14.500 aves à projeção e mantém a linha
-rodando às 23:45; virada de mês fecha setembro com o último dia simulado; um dia perdido leva à
-recomendação de sábado extra (≈ 127,6 mil aves).
+túnel por 3 h → dia abaixo do plano e recomendação de hora extra hoje, com card da Intelligence e
+aprovação em um clique; 1 h aprovada soma 14.500 aves à projeção e mantém a linha rodando às 23:45;
+virada de mês fecha setembro com o último dia simulado; um dia perdido leva à recomendação de dia
+extra num sábado (1 turno ≈ 127,6 mil aves; 2 turnos ≈ 255,2 mil); 3h30 de hora extra aceitas no
+padrão, limitadas só pelas 03:00, e um limite configurado de 1 h corta a hora extra aprovada; caixas
+embaladas depois das 03:00 contam no dia do abate.
 
 ### Cenários (teclas 1–7) — um por elo da cadeia
 
@@ -347,8 +347,9 @@ Tela **Plano PCP**:
 │Hoje aves│Hoje kg   │Fechamento dia│Mês até agora│Projeção do mês│Recuperação (HE, extras)│
 ├─────────┴──────────┴──────────────┴─────────────┼───────────────┴────────────────────────┤
 │ Calendário do mês (D S T Q Q S S): plano, real,  │ Recomendação do PCP: hora extra hoje /  │
-│ barra de aderência, HE, dia extra, perdas        │ nos próximos dias / sábado extra        │
-│                                                  │ [Aplicar] [−15 min] HE [+15 min] [sáb.] │
+│ barra de aderência, HE, dia extra, perdas        │ nos próximos dias / dia extra           │
+│                                                  │ [Aplicar] [−15 min] HE [+15 min] [dias] │
+│                                                  │ Configuração: limite HE · turnos extra  │
 │                                                  │ Mês anterior                            │
 ├──────────────────────────────┬───────────────────┴────────────────────────────────────────┤
 │ Hoje: plano × real por hora  │ Mês: meta × realizado acumulados                           │
@@ -447,7 +448,6 @@ Sem chamadas de rede: não há estados de carregamento nem de erro.
 | `app.description` ≤ 80 caracteres | AGENTS.md do Multi-lane Free Flow (validação do `dt-app build`) | ✅ |
 | `DataTable`, `TimeseriesChart`, `CategoricalBarChart`, `DonutChart`, `GaugeChart`, `TopList` e slots | `.d.ts` em `tables/` e `charts/` (Strato 3.14.2) | ✅ |
 | `CategoricalBarChart` com `groupMode="grouped"` e `value: Record<string, number>`; `Button` (`variant`, `color`, `size`) | dt-app-mcp (`get_strato_component`, `get_strato_usecases` "GroupMode") | ✅ |
-| Hora extra até 2 h/dia com adicional ≥ 50% (CLT art. 59); domingo/feriado não compensado em dobro (Súmula 146 do TST) | resultados de busca (Parte A7) | ⚠️ resumo |
 | Plano diário do PCP e meta do mês no simulador | `npm run test:sim` (bloco PCP) e screenshot `docs/img/plan.png` | ✅ |
 
 ### Docs impact (R12)

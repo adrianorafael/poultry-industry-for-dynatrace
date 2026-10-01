@@ -111,7 +111,7 @@ export const SECTIONS: Section[] = [
     ],
     notes: [
       "Dia de produção de 03:00 a 03:00: o turno 2, a hora extra e as caixas embaladas depois da meia-noite contam no dia em que o abate começou.",
-      "Hora extra: até 2 h por dia (CLT, art. 59), com adicional mínimo de 50%. Dia extra: um turno no sábado, quando o déficit passa do que a hora extra cobre.",
+      "Hora extra e dia extra seguem o que o PCP configurar (limite por dia, turnos do dia extra); regras de jornada e pagamento ficam nos sistemas de RH.",
       "Workflow 4: quando a projeção do dia ficar abaixo do plano, avisar o PCP e o fomento (escala de apanha e transporte) com a hora extra sugerida.",
     ],
   },

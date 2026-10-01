@@ -1498,3 +1498,24 @@
     grid-template-columns: 1fr;
   }
 }
+.ff-cal-toggle {
+  font-family: inherit;
+  color: inherit;
+  justify-content: flex-start;
+  text-align: left;
+  cursor: pointer;
+}
+.ff-cal-toggle:hover {
+  border-color: var(--dt-colors-border-primary-default);
+}
+.ff-cal-toggle:focus-visible {
+  outline: 2px solid var(--dt-colors-border-primary-default);
+  outline-offset: 1px;
+}
+.ff-recovery-config {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--dt-colors-border-neutral-default);
+}

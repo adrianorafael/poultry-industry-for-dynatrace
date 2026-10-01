@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Engine } from "../sim/engine";
+import { PCP_DEFAULTS } from "../sim/model";
 import type { Snapshot, StageId } from "../sim/types";
 
 type FrameFn = (now: number) => void;
@@ -34,9 +35,18 @@ export interface Prefs {
   sources: boolean;
   tv: boolean;
   dashboardId: string;
+  /** PCP settings: overtime limit per day (null = up to the end of the production day) and extra-day shifts. */
+  pcpOvertimeMaxH: number | null;
+  pcpExtraShifts: 1 | 2;
 }
 
-const DEFAULT_PREFS: Prefs = { sources: false, tv: false, dashboardId: "" };
+const DEFAULT_PREFS: Prefs = {
+  sources: false,
+  tv: false,
+  dashboardId: "",
+  pcpOvertimeMaxH: PCP_DEFAULTS.overtimeMaxH,
+  pcpExtraShifts: PCP_DEFAULTS.extraDayShifts,
+};
 const PREFS_KEY = "poultry-industry.prefs";
 
 /** Preferences live in this browser only (no scopes needed). */
@@ -85,6 +95,11 @@ export function EngineProvider({ children }: { children: ReactNode }) {
     loop.start();
     return () => loop.stop();
   }, [loop]);
+
+  // the PCP settings live with the presenter's preferences and drive the engine
+  useEffect(() => {
+    engine.setPcpConfig({ overtimeMaxH: prefs.pcpOvertimeMaxH, extraDayShifts: prefs.pcpExtraShifts });
+  }, [engine, prefs.pcpOvertimeMaxH, prefs.pcpExtraShifts]);
 
   const value = useMemo<Ctx>(
     () => ({

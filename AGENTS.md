@@ -68,10 +68,13 @@ The **PCP plan** lives in the same engine: a calendar of the current month (`mon
 plan per working day (birds and kg; national holidays and Good Friday excluded), a deterministic
 synthetic history for the days before the session (`pcpAnchor`), and the simulated actuals from the
 session day on. Slaughter windows come from the day's calendar entry (`windows()`), so approved
-overtime (`approveOvertime`) extends shift 2 past midnight and a scheduled Saturday (`toggleSaturday`)
-runs one shift. `pcpView()` computes adherence to the plan to now, the end-of-day and end-of-month
+overtime (`approveOvertime`) extends shift 2 past midnight and a scheduled extra day (`toggleExtraDay`,
+Saturday, Sunday or holiday) runs one or two shifts. Labor rules are **out of scope** (owner,
+2026-10-01: a demo, and working-hour rules belong to HR systems — "aqui aceita o que for
+configurado"): the overtime limit per day and the extra-day shifts are PCP settings (`setPcpConfig`,
+stored with the presenter prefs); the only hard bound is the end of the production day at 03:00. `pcpView()` computes adherence to the plan to now, the end-of-day and end-of-month
 projections at the planning rate (14,500 birds/h) and the recommendation (`recovery()`: close the day
-with overtime; otherwise the month with overtime on the next working days or a Saturday shift).
+with overtime; otherwise the month with overtime on the next working days or an extra slaughter day).
 
 ## Traps already hit in this repository
 
@@ -121,10 +124,12 @@ with overtime; otherwise the month with overtime on the next working days or a S
 1.2–2.6 s, health 90–97; for a full day: 240–270 thousand birds, 520–620 t packed, 20–34 loads,
 40–110 NF-e; and, for each of the seven scenarios, the effect its Dynatrace Intelligence card describes.
 For the PCP plan: 250–260 thousand birds planned for the day, adherence 97–103% at 11 am with OK status,
-98–104% at the end of a normal day, deterministic history, a tunnel failure that recommends 15 min–2 h
-of overtime today (and raises the Intelligence plan-risk card), 1 h approved = +14,500 birds in the
-projection with the line still running at 23:45, the month rollover, and a lost day that recommends a
-Saturday shift (≈ 127,600 birds).
+98–104% at the end of a normal day, deterministic history, a tunnel failure that recommends overtime
+today (and raises the Intelligence plan-risk card), 1 h approved = +14,500 birds in the projection with
+the line still running at 23:45, the month rollover, a lost day that recommends an extra day on a
+Saturday (one shift ≈ 127,600 birds, two ≈ 255,200), 3h30 of overtime accepted by default and bounded
+only at 03:00, a configured 1 h limit that trims the approved overtime, and boxes packed after 03:00
+counted on the slaughter day.
 
 ## MCP servers — two of them, different jobs
 

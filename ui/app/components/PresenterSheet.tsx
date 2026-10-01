@@ -73,8 +73,8 @@ export const PresenterSheet = ({ onTour }: { onTour: () => void }) => {
           >
             H · Aprovar {fmtH(snap.pcp.recovery.suggestTodayH > 0 ? snap.pcp.recovery.suggestTodayH : 0.5)} de hora extra
           </Button>
-          <Button disabled={snap.pcp.recovery.saturday === undefined} onClick={() => engine.toggleSaturday(snap.pcp.recovery.saturday ?? 0)}>
-            Programar sábado extra{snap.pcp.recovery.saturday !== undefined ? ` (${fmtDate(snap.pcp.recovery.saturday)})` : ""}
+          <Button disabled={snap.pcp.recovery.extraDay === undefined} onClick={() => engine.toggleExtraDay(snap.pcp.recovery.extraDay ?? 0)}>
+            Programar dia extra{snap.pcp.recovery.extraDay !== undefined ? ` (${fmtDate(snap.pcp.recovery.extraDay)})` : ""}
           </Button>
         </div>
 

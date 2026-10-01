@@ -418,7 +418,15 @@ export interface PcpDayView {
   level: Level;
 }
 
-export type RecoveryKind = "none" | "overtime-today" | "overtime-days" | "saturday" | "unrecoverable";
+export type RecoveryKind = "none" | "overtime-today" | "overtime-days" | "extra-day" | "unrecoverable";
+
+/** PCP settings: labor rules belong to HR, the plan accepts what is configured here. */
+export interface PcpConfig {
+  /** Overtime limit per day (hours); null = up to the end of the production day (03:00). */
+  overtimeMaxH: number | null;
+  /** Shifts in an extra slaughter day. */
+  extraDayShifts: 1 | 2;
+}
 
 export interface PcpRecovery {
   kind: RecoveryKind;
@@ -434,9 +442,9 @@ export interface PcpRecovery {
   overtimeToday: number;
   /** Suggested overtime for today (hours). */
   suggestTodayH: number;
-  /** Next Saturday that can host an extra shift (local midnight), if any. */
-  saturday?: number;
-  saturdayScheduled: number[];
+  /** Next day without slaughter planned (Saturday first) that can host an extra day, if any. */
+  extraDay?: number;
+  extraScheduled: number[];
 }
 
 export interface PcpView {
@@ -482,6 +490,12 @@ export interface PcpView {
   };
   previous: { label: string; planBirds: number; actualBirds: number; adherence: number; extraHours: number; extraDays: number };
   recovery: PcpRecovery;
+  config: PcpConfig;
+  /** Overtime limit that applies today (configured, bounded by the end of the production day). */
+  overtimeCapH: number;
+  /** Hours and birds of the extra day as configured. */
+  extraDayH: number;
+  extraDayBirds: number;
   days: PcpDayView[];
   /** Today's production day by local hour: plan and actual birds. */
   hourly: { hour: number; plan: number; actual: number | null }[];

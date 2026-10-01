@@ -224,7 +224,7 @@
       <figure class="shot"><a href="img/intelligence-sefaz.png"><img src="img/intelligence-sefaz.png" alt="SEFAZ-PR fora do ar com a Dynatrace Intelligence aberta" loading="lazy" /></a>
         <figcaption><b>SEFAZ-PR fora do ar</b>Causa externa separada das internas, cargas retidas, contingência SVC-RS e a previsão do certificado A1.</figcaption></figure>
       <figure class="shot"><a href="img/plan.png"><img src="img/plan.png" alt="Plano do PCP: calendário do mês e recomendação de recuperação" loading="lazy" /></a>
-        <figcaption><b>Plano PCP</b>Calendário diário de aves e quilos, aderência, projeção do dia e do mês e a recomendação de hora extra ou sábado extra.</figcaption></figure>
+        <figcaption><b>Plano PCP</b>Calendário diário de aves e quilos, aderência, projeção do dia e do mês e a recomendação de hora extra ou dia extra.</figcaption></figure>
       <figure class="shot"><a href="img/intelligence-plan.png"><img src="img/intelligence-plan.png" alt="Túnel 2 com o plano do dia em risco na Dynatrace Intelligence" loading="lazy" /></a>
         <figcaption><b>Plano do dia em risco</b>O incidente do túnel custa horas de abate; a Intelligence projeta o déficit e aprova a hora extra em um clique.</figcaption></figure>
       <figure class="shot"><a href="img/scenario-storage.png"><img src="img/scenario-storage.png" alt="Câmara fria lotada após omissão de escala do navio" loading="lazy" /></a>
@@ -259,7 +259,7 @@
         <div class="meta">Chave de acesso com CNPJ mascarado · contingência SVC-RS (tpEmis 7)</div></div>
       <div class="card"><span class="ico">🗓️</span><h3>Plano do PCP</h3>
         <p>Calendário do mês com o plano diário de aves e de quilos, realizado, aderência até agora, projeção do dia e do mês e o custo de cada incidente em horas de abate.</p>
-        <div class="meta">Hora extra até 2 h/dia (CLT art. 59) ou sábado extra · aprovação em um clique · dia de produção 03:00–03:00</div></div>
+        <div class="meta">Hora extra ou dia extra, conforme a configuração do PCP · aprovação em um clique · dia de produção 03:00–03:00</div></div>
       <div class="card"><span class="ico">🚢</span><h3>Vendas e expedição</h3>
         <p>Exportação por país e mercado interno por UF, mix de produtos, produção × expedição, ocupação da câmara e a tabela de cargas do dia.</p>
         <div class="meta">Hoje ou mês até agora (estimado) · Strato charts e DataTable</div></div>
@@ -267,7 +267,7 @@
         <p>Gaveta recolhível com causa raiz, entidades afetadas, impacto calculado, tempo de detecção, ação recomendada e explicação.</p>
         <div class="meta">Roteirizado e rotulado "Simulação" · chip de IA do Strato e aviso</div></div>
       <div class="card"><span class="ico">🎬</span><h3>Ferramentas do apresentador</h3>
-        <p>Sete cenários, 1× / 10× / 60×, hora simulada, semente, hora extra / sábado extra do PCP, tour automático de 6 minutos, modo TV, "Fontes Dynatrace" e resumo.</p>
+        <p>Sete cenários, 1× / 10× / 60×, hora simulada, semente, hora extra / dia extra do PCP, tour automático de 6 minutos, modo TV, "Fontes Dynatrace" e resumo.</p>
         <div class="meta">Atalhos 0–7, Espaço, P, I, H, D, T, R</div></div>
       <div class="card"><span class="ico">🗺️</span><h3>Dados e integrações</h3>
         <p>Business Events <code>poultry.*</code> e seus campos, métricas OT, Business Flow, Workflows e a ordem de implantação para dados reais.</p>
@@ -449,7 +449,7 @@ npm install</pre></li>
           <tr><td>As linhas estão paradas e quase nada se mexe</td><td>É noite no seu fuso (higienização): escolha 10:00 ou 17:00 na hora simulada do painel do apresentador.</td></tr>
           <tr><td>Nada se mexe</td><td>A simulação está pausada (Espaço) ou a velocidade está em 1×; use 60×.</td></tr>
           <tr><td>O Plano PCP não recomenda nada depois de um incidente</td><td>O mês já estava à frente da meta e o dia ainda fecha dentro da tolerância (15 min de abate): deixe o incidente correr mais ou dispare o 3 (túnel) por ~1 h de planta.</td></tr>
-          <tr><td>A hora extra não pode ser aprovada</td><td>O abate do dia já terminou (higienização): a hora extra só estende o turno que ainda está rodando.</td></tr>
+          <tr><td>A hora extra não pode ser aprovada</td><td>O abate do dia já terminou (higienização), ou a hora extra chegou ao limite configurado no Plano PCP ou às 03:00, quando começa o próximo dia de produção.</td></tr>
           <tr><td>O cenário da SEFAZ não retém nenhuma carga</td><td>Não havia carga sendo faturada naquele momento: dispare-o às 10:00 ou 17:00, quando as cargas do pico chegam à balança.</td></tr>
           <tr><td>As animações pesam em um notebook lento</td><td>Use 10×, evite combinar cenários ou ative "reduzir movimento" no sistema.</td></tr>
           <tr><td>Botão "Abrir dashboard" não aparece</td><td>Cole o ID de um documento de dashboard no painel do apresentador; o botão só aparece quando preenchido.</td></tr>

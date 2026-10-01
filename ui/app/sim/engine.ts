@@ -37,7 +37,9 @@ import {
   NFE_FIRST_NUMBER,
   NFE_MEDIAN_S,
   NFE_SIGMA,
-  OVERTIME_MAX_H,
+  EXTRA_SHIFT_BIRDS,
+  EXTRA_SHIFT_H,
+  HISTORY_OVERTIME_H,
   PARTIAL_BASE,
   PARTIAL_CAUSES,
   PAWS,
@@ -54,8 +56,9 @@ import {
   PRODUCTS,
   PUTAWAY_RATE,
   RECEIVING,
-  SATURDAY_BIRDS,
-  SATURDAY_SHIFT_H,
+  PCP_DEFAULTS,
+  PREFER_EXTRA_DAY_H,
+  PROD_DAY_END_H,
   SCALE_IN_MIN,
   SCALE_OUT_MIN,
   SHED_BAYS,
@@ -102,6 +105,7 @@ import type {
   MassBalance,
   Nfe,
   NfeView,
+  PcpConfig,
   PcpDayKind,
   PcpDayView,
   PcpRecovery,
@@ -391,6 +395,9 @@ export class Engine {
   /** PCP day of the running production day (undefined while warming up before the anchor). */
   private pcpCur: PcpDay | undefined;
   private snapPcp: PcpView | undefined;
+  private pcpConfig: PcpConfig = { ...PCP_DEFAULTS };
+  /** The production day closed last (late boxes from overtime past ~01:30 still land in it). */
+  private prevDay: Day | undefined;
   private anteRate = 0;
   /** Chilled product held back (câmara de resfriados) when the antecâmara is full. */
   private chilledHold = 0;
@@ -487,25 +494,34 @@ export class Engine {
     this.forceSnapshot();
   }
 
-  /** Approves overtime for today's slaughter (hours, quarter-hour steps, CLT limit of 2 h). */
+  /** PCP settings (overtime limit, extra-day shifts). Labor rules are HR's: the plan accepts what is set here. */
+  setPcpConfig(c: Partial<PcpConfig>): void {
+    this.pcpConfig = { ...this.pcpConfig, ...c };
+    // a lower limit trims today's approved overtime (never below what already ran)
+    if (this.pcpCur) this.approveOvertime(this.pcpCur.extraH);
+    else this.forceSnapshot();
+  }
+
+  /** Approves overtime for today's slaughter (hours, quarter-hour steps, up to the configured limit). */
   approveOvertime(h: number): void {
     const d = this.pcpCur;
     if (!d) return;
     const end = this.regularEnd(d);
     const ph = prodParts(this.simTime).hour;
     const used = clamp(ph - end, 0, d.extraH);
-    d.extraH = clamp(Math.max(used, Math.round(h * 4) / 4), 0, OVERTIME_MAX_H);
+    d.extraH = clamp(Math.max(used, Math.round(h * 4) / 4), 0, Math.max(used, this.overtimeCap(d)));
     this.forceSnapshot();
   }
 
-  /** Schedules (or cancels) a one-shift extra slaughter on a Saturday of the current month. */
-  toggleSaturday(date: number): void {
+  /** Schedules (or cancels) an extra slaughter day on a future Saturday, Sunday or holiday of the month. */
+  toggleExtraDay(date: number): void {
     const d = this.pcpDays.find((x) => x.date === date);
-    if (!d || d.kind !== "sabado" || d.date <= this.day.date) return;
+    if (!d || d.kind === "util" || d.date <= this.day.date) return;
+    const shifts = this.pcpConfig.extraDayShifts;
     d.extraDay = !d.extraDay;
-    d.oneShift = d.extraDay;
-    d.extraPlanBirds = d.extraDay ? SATURDAY_BIRDS : 0;
-    d.extraPlanKg = d.extraDay ? Math.round((SATURDAY_BIRDS * PLAN_FIN_PER_BIRD) / 100) * 100 : 0;
+    d.oneShift = d.extraDay && shifts === 1;
+    d.extraPlanBirds = d.extraDay ? this.extraDayBirds(shifts) : 0;
+    d.extraPlanKg = d.extraDay ? Math.round((d.extraPlanBirds * PLAN_FIN_PER_BIRD) / 100) * 100 : 0;
     this.forceSnapshot();
   }
 
@@ -638,6 +654,7 @@ export class Engine {
     this.partialSum.v = 100000 * PARTIAL_BASE;
     this.doaDead.v = 100000 * (DOA_TRANSPORT + DOA_SHED_PER_H * 1.2);
     this.day = newDay(prodParts(t0));
+    this.prevDay = undefined;
     this.hourly = [];
     this.truckSeq = 0;
     this.loadSeq = 0;
@@ -679,6 +696,7 @@ export class Engine {
 
   private newDay(p: ProdParts): void {
     this.closePcpDay(this.day);
+    this.prevDay = this.day;
     this.day = newDay(p);
     this.truckSeq = 0;
     this.loadSeq = 0;
@@ -1093,26 +1111,38 @@ export class Engine {
   private stepPipeline(dtMs: number): void {
     const cut = Math.floor(this.simTime / MIN) - PROCESS_DELAY_MIN;
     let kg = 0;
+    // boxes of birds slaughtered before 03:00 (overtime) belong to the previous production day
+    let lateKg = 0;
     for (const [m, v] of this.pipeline) {
       if (m <= cut) {
-        kg += v;
+        if (m * MIN < this.day.start) lateKg += v;
+        else kg += v;
         this.pipeline.delete(m);
       }
     }
-    this.packRate += (kg / BOX_KG / (dtMs / HOUR) - this.packRate) * Math.min(1, dtMs / (10 * MIN));
-    if (kg <= 0) return;
-    const boxes = kg / BOX_KG;
-    this.ante += boxes;
+    const total = kg + lateKg;
+    this.packRate += (total / BOX_KG / (dtMs / HOUR) - this.packRate) * Math.min(1, dtMs / (10 * MIN));
+    if (total <= 0) return;
+    this.ante += total / BOX_KG;
     if (this.ante > ANTE_CAPACITY) {
       this.chilledHold += this.ante - ANTE_CAPACITY;
       this.ante = ANTE_CAPACITY;
     }
-    const d = this.day;
-    d.boxes += boxes;
+    this.packInto(this.day, kg);
+    if (lateKg > 0 && this.prevDay) {
+      this.packInto(this.prevDay, lateKg);
+      const rec = this.prevDay.date >= this.pcpAnchor ? this.pcpDayAt(this.prevDay.date) : undefined;
+      if (rec && rec.actualKg !== null) rec.actualKg = Math.round(rec.actualKg + lateKg);
+    }
+    this.hourNow.producedKg += total;
+    if (!this.warming) this.session.finishedKg += total;
+  }
+
+  private packInto(d: Day, kg: number): void {
+    if (kg <= 0) return;
+    d.boxes += kg / BOX_KG;
     d.finishedKg += kg;
     for (const p of PRODUCTS) d.produced[p.id] = (d.produced[p.id] ?? 0) + kg * p.mix;
-    this.hourNow.producedKg += kg;
-    if (!this.warming) this.session.finishedKg += kg;
   }
 
   // ------------------------------------------------------------ freezing tunnels and cold storage
@@ -1743,6 +1773,17 @@ export class Engine {
     return d?.oneShift ? SHIFTS[0][1] : SHIFTS[1][1];
   }
 
+  /** Overtime limit for a day: the configured one, bounded by the end of the production day. */
+  private overtimeCap(d: PcpDay | undefined): number {
+    const technical = PROD_DAY_END_H - this.regularEnd(d);
+    const set = this.pcpConfig.overtimeMaxH;
+    return set === null ? technical : Math.min(set, technical);
+  }
+
+  private extraDayBirds(shifts: 1 | 2): number {
+    return Math.round((shifts * EXTRA_SHIFT_H * PLAN_RATE) / 100) * 100;
+  }
+
   /** Slaughter windows of the running production day (hours 3–27), approved overtime included. */
   private windows(): [number, number][] {
     const d = this.pcpCur;
@@ -1844,15 +1885,15 @@ export class Engine {
           const f = isMajor ? rng.range(0.42, 0.6) : bad ? rng.range(0.86, 0.95) : clamp(1.006 + rng.normal() * 0.005, 0.99, 1.02);
           if (isMajor) day.cause = rng.choice(PLAN_MAJOR_CAUSES);
           else if (bad) day.cause = rng.choice(PLAN_LOSS_CAUSES);
-          if (deficit > 0.5 * PLAN_RATE) day.extraH = Math.min(OVERTIME_MAX_H, quarterUp(deficit / PLAN_RATE));
+          if (deficit > 0.5 * PLAN_RATE) day.extraH = Math.min(HISTORY_OVERTIME_H, quarterUp(deficit / PLAN_RATE));
           birds = planBirds * f + day.extraH * PLAN_RATE * rng.range(0.96, 1);
           deficit += planBirds - birds;
         } else if (kind === "sabado" && deficit > 4 * PLAN_RATE) {
           day.extraDay = true;
           day.oneShift = true;
-          day.extraPlanBirds = SATURDAY_BIRDS;
-          day.extraPlanKg = Math.round((SATURDAY_BIRDS * finPerBird) / 100) * 100;
-          birds = SATURDAY_BIRDS * rng.range(0.97, 1);
+          day.extraPlanBirds = EXTRA_SHIFT_BIRDS;
+          day.extraPlanKg = Math.round((EXTRA_SHIFT_BIRDS * finPerBird) / 100) * 100;
+          birds = EXTRA_SHIFT_BIRDS * rng.range(0.97, 1);
           deficit -= birds;
         }
         day.actualBirds = Math.round(birds);
@@ -2035,26 +2076,37 @@ export class Engine {
       },
       previous: this.pcpPrev,
       recovery,
+      config: { ...this.pcpConfig },
+      overtimeCapH: Math.floor(this.overtimeCap(t) * 4) / 4,
+      extraDayH: this.pcpConfig.extraDayShifts * EXTRA_SHIFT_H,
+      extraDayBirds: this.extraDayBirds(this.pcpConfig.extraDayShifts),
       days,
       hourly,
     };
   }
 
-  /** What the PCP needs to close the month: overtime today, overtime on the next days, or a Saturday shift. */
+  /** What the PCP needs: close the day with overtime, or the month with overtime on the next days or an extra day. */
   private recovery(t: PcpDay, ph: number, dayGap: number, gap: number, projected: number, planM: number, workdaysLeft: number): PcpRecovery {
     const tol = 0.25 * PLAN_RATE;
     const hours = gap > tol ? quarterUp(gap / PLAN_RATE) : 0;
     const dayHours = dayGap > tol ? quarterUp(dayGap / PLAN_RATE) : 0;
     const end = this.regularEnd(t);
     const running = ph < end + t.extraH;
-    const overtimeToday = running ? Math.max(0, OVERTIME_MAX_H - t.extraH) : 0;
-    const sats = this.pcpDays.filter((d) => d.kind === "sabado" && d.date > t.date && !d.extraDay);
-    const scheduled = this.pcpDays.filter((d) => d.oneShift && d.date > t.date).map((d) => d.date);
-    const base = { scope: "month" as const, dayGapBirds: dayGap, hours, overtimeToday, suggestTodayH: 0, saturday: sats[0]?.date, saturdayScheduled: scheduled };
+    const overtimeToday = running ? Math.max(0, Math.floor(this.overtimeCap(t) * 4) / 4 - t.extraH) : 0;
+    // future working days run both shifts; Saturdays come first as extra days, then Sundays and holidays
+    const capPerDay = Math.floor(this.overtimeCap(undefined) * 4) / 4;
+    const capDays = workdaysLeft * capPerDay;
+    const free = this.pcpDays
+      .filter((d) => d.kind !== "util" && d.date > t.date && !d.extraDay)
+      .sort((a, b) => (a.kind === "sabado" ? 0 : 1) - (b.kind === "sabado" ? 0 : 1) || a.date - b.date);
+    const scheduled = this.pcpDays.filter((d) => d.extraDay && d.date > t.date).map((d) => d.date);
+    const shifts = this.pcpConfig.extraDayShifts;
+    const extraH = shifts * EXTRA_SHIFT_H;
+    const base = { scope: "month" as const, dayGapBirds: dayGap, hours, overtimeToday, suggestTodayH: 0, extraDay: free[0]?.date, extraScheduled: scheduled };
     const birds = fmtInt(gap);
-    const capDays = workdaysLeft * OVERTIME_MAX_H;
     const next = (n: number) => (n === 1 ? "no próximo dia útil" : `nos próximos ${n} dias úteis`);
     const monthPct = fmtPct(planM > 0 ? (100 * projected) / planM : 100, 1);
+    const dayName = (d: PcpDay) => `${d.kind === "sabado" ? "sábado" : d.kind === "domingo" ? "domingo" : (d.holiday ?? "feriado")} ${fmtDate(d.date)}`;
     if (dayHours > 0 && overtimeToday > 0 && hours <= Math.min(dayHours, overtimeToday)) {
       // Close the day: today's birds are already scheduled for catching and transport.
       const h = Math.min(dayHours, overtimeToday);
@@ -2068,9 +2120,9 @@ export class Engine {
         title: `Aprovar ${fmtH(h)} de hora extra hoje`,
         detail: `O dia vai fechar ${fmtInt(dayGap)} aves abaixo do plano, e os lotes de hoje já estão em apanha e transporte. Com ${fmtH(h)} a mais, o abate vai até ${fmtHour(
           end + t.extraH + h,
-        )}${rest > tol ? `; as ${fmtInt(rest)} aves restantes voltam ao fomento para os próximos dias` : ""}. ${
-          hours === 0 ? `No mês, a meta segue garantida (projeção ${monthPct}).` : ""
-        } Limite da CLT: 2 h por dia, com adicional mínimo de 50%.`,
+        )}${rest > tol ? `; as ${fmtInt(rest)} aves restantes voltam ao fomento para os próximos dias` : ""}.${
+          hours === 0 ? ` No mês, a meta segue garantida (projeção ${monthPct}).` : ""
+        }`,
       };
     }
     if (hours === 0)
@@ -2086,34 +2138,31 @@ export class Engine {
         kind: "overtime-today",
         suggestTodayH: hours,
         title: `Aprovar ${fmtH(hours)} de hora extra hoje`,
-        detail: `Faltam ${birds} aves para a meta do mês. Com ${fmtH(hours)} a mais, o abate vai até ${fmtHour(end + t.extraH + hours)}. Limite da CLT: 2 h por dia, com adicional mínimo de 50%.`,
+        detail: `Faltam ${birds} aves para a meta do mês. Com ${fmtH(hours)} a mais, o abate vai até ${fmtHour(end + t.extraH + hours)}.`,
       };
     const spread = (h: number) => {
       const rest = Math.max(0, h - overtimeToday);
-      const n = Math.max(1, Math.ceil(rest / OVERTIME_MAX_H - 1e-9));
+      const n = Math.max(1, Math.ceil(rest / Math.max(0.25, capPerDay) - 1e-9));
       return `${overtimeToday > 0 ? `${fmtH(overtimeToday)} hoje e ` : ""}${fmtH(quarterUp(rest / n))} por dia ${next(n)}`;
     };
-    if (hours <= 6 && hours <= overtimeToday + capDays)
+    if (hours < PREFER_EXTRA_DAY_H && hours <= overtimeToday + capDays)
       return {
         ...base,
         kind: "overtime-days",
         suggestTodayH: overtimeToday,
         title: `${fmtH(hours)} de hora extra até o fim do mês`,
-        detail: `Faltam ${birds} aves: ${spread(hours)}. Limite da CLT: 2 h por dia.`,
+        detail: `Faltam ${birds} aves: ${spread(hours)}.`,
       };
-    if (sats.length && hours <= SATURDAY_SHIFT_H * sats.length + overtimeToday + capDays) {
-      const n = clamp(Math.round(hours / SATURDAY_SHIFT_H), 1, sats.length);
-      const rest = Math.max(0, hours - n * SATURDAY_SHIFT_H);
-      const list = sats
-        .slice(0, n)
-        .map((d) => fmtDate(d.date))
-        .join(" e ");
+    if (free.length && hours <= extraH * free.length + overtimeToday + capDays) {
+      const n = clamp(Math.round(hours / extraH), 1, free.length);
+      const rest = Math.max(0, hours - n * extraH);
+      const list = free.slice(0, n).map(dayName).join(" e ");
       return {
         ...base,
-        kind: "saturday",
+        kind: "extra-day",
         suggestTodayH: Math.min(overtimeToday, quarterUp(rest)),
-        title: n === 1 ? `Programar sábado extra (${list})` : `Programar ${n} sábados extras (${list})`,
-        detail: `Faltam ${birds} aves (${fmtH(hours)} de abate). Cada sábado extra é um turno de ≈ ${fmtInt(SATURDAY_BIRDS)} aves${
+        title: n === 1 ? `Programar dia extra de abate (${list})` : `Programar ${n} dias extras de abate (${list})`,
+        detail: `Faltam ${birds} aves (${fmtH(hours)} de abate). Cada dia extra configurado tem ${shifts} turno(s), ≈ ${fmtInt(this.extraDayBirds(shifts))} aves${
           rest > 0 ? `; o restante (${fmtH(rest)}) vira hora extra nos dias úteis` : ""
         }. As aves não abatidas continuam nos integrados, ganhando peso e consumindo ração.`,
       };
@@ -2124,14 +2173,14 @@ export class Engine {
         kind: "overtime-days",
         suggestTodayH: overtimeToday,
         title: `${fmtH(hours)} de hora extra até o fim do mês`,
-        detail: `Faltam ${birds} aves e não há sábado livre no mês: ${spread(hours)}.`,
+        detail: `Faltam ${birds} aves e não há dia livre para um abate extra: ${spread(hours)}.`,
       };
     return {
       ...base,
       kind: "unrecoverable",
       suggestTodayH: overtimeToday,
       title: `Meta do mês não fecha: faltam ${birds} aves`,
-      detail: `Nem 2 h extras por dia${sats.length ? " e os sábados restantes" : ""} recuperam ${fmtH(hours)} de abate. O PCP leva o saldo para o próximo mês, junto com o fomento (alojamento dos lotes).`,
+      detail: `Nem a hora extra configurada${free.length ? " nem os dias livres restantes" : ""} recuperam ${fmtH(hours)} de abate. O PCP leva o saldo para o próximo mês, junto com o fomento (alojamento dos lotes).`,
     };
   }
 
@@ -2856,9 +2905,9 @@ export class Engine {
           day ? "dia" : "mês"
         }. O déficit de ${fmtInt(missing)} aves equivale a ${fmtH(missing / PLAN_RATE)} de abate. ${
           r.kind === "overtime-today"
-            ? "Hora extra ainda hoje recupera o volume dentro do limite da CLT, enquanto os lotes programados continuam chegando."
-            : r.kind === "saturday"
-              ? "O volume passa do que a hora extra cobre: o caminho é um sábado extra."
+            ? "Hora extra ainda hoje recupera o volume enquanto os lotes programados continuam chegando."
+            : r.kind === "extra-day"
+              ? "O volume passa do que a hora extra configurada cobre: o caminho é um dia extra de abate."
               : "O PCP distribui a recuperação nos próximos dias úteis."
         }`,
         start: "previsão",
@@ -2875,7 +2924,7 @@ export class Engine {
           { label: "Meta do mês", value: fmtPct((100 * pcp.month.projectedBirds) / Math.max(1, pcp.month.planBirds), 1), note: "projeção" },
         ],
         cta:
-          r.kind === "overtime-today" || (r.suggestTodayH > 0 && r.kind !== "saturday")
+          r.kind === "overtime-today" || (r.suggestTodayH > 0 && r.kind !== "extra-day")
             ? { label: `Aprovar ${fmtH(r.suggestTodayH)} de hora extra hoje`, overtimeH: pcp.today.extraH + r.suggestTodayH }
             : { label: "Abrir o plano do PCP", route: "/plano" },
       });

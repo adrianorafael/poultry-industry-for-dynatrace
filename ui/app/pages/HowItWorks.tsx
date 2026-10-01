@@ -34,9 +34,9 @@ export const HowItWorks = () => (
     <Paragraph>
       A produção segue o <Strong>planejamento do PCP</Strong>: um calendário diário com as aves a abater e os quilos de produto de cada dia útil
       (≈ 255 mil aves e 575 t). A aba <Strong>Plano PCP</Strong> compara o realizado com o plano até a hora atual, projeta o fechamento do dia e do mês e
-      mostra quanto cada incidente custou em horas de abate. Quando o dia ou o mês ficam para trás, o PCP recupera com <Strong>hora extra</Strong> (até 2 h
-      por dia, CLT art. 59) ou com um <Strong>dia extra</Strong> de abate (um turno no sábado). Aves não abatidas continuam nos integrados, ganhando peso e
-      consumindo ração. O dia de produção vai das 03:00 às 03:00.
+      mostra quanto cada incidente custou em horas de abate. Quando o dia ou o mês ficam para trás, o PCP recupera com <Strong>hora extra</Strong> ou com um{" "}
+      <Strong>dia extra</Strong> de abate (sábado, domingo ou feriado). O limite de hora extra e os turnos do dia extra são configuráveis: regras de
+      jornada são do RH, e o plano aceita o que estiver configurado. Aves não abatidas continuam nos integrados, ganhando peso e consumindo ração. O dia de produção vai das 03:00 às 03:00.
     </Paragraph>
 
     <Heading level={4}>O que é simulado</Heading>

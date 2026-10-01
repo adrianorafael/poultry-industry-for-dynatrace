@@ -299,12 +299,25 @@ export const PLAN_RATE = 14500;
 export const PLAN_BIRDS_DAY = 255000;
 /** Planned finished product per bird (kg): average live weight of the lots × planned yield. */
 export const PLAN_FIN_PER_BIRD = 2.25;
-/** CLT art. 59: at most two extra hours per day, paid with at least 50% premium. */
-export const OVERTIME_MAX_H = 2;
-/** A Saturday extra day runs one shift. */
-export const SATURDAY_SHIFT_H = SHIFTS[0][1] - SHIFTS[0][0];
-/** Birds planned for a Saturday extra shift. */
-export const SATURDAY_BIRDS = Math.round((SATURDAY_SHIFT_H * PLAN_RATE) / 100) * 100;
+/** The production day ends here (03:00 of the next date): overtime cannot run past it. */
+export const PROD_DAY_END_H = PROD_DAY_START_H + 24;
+/**
+ * Labor rules (overtime limits and pay) belong to the HR systems, not to this demo: the plan accepts
+ * whatever the PCP configures. These are the defaults of the PCP settings on the plan page.
+ */
+export const PCP_DEFAULTS = {
+  /** Overtime limit per day (hours); null = up to the end of the production day. */
+  overtimeMaxH: null as number | null,
+  /** Shifts in an extra slaughter day (Saturday, Sunday or holiday). */
+  extraDayShifts: 1 as 1 | 2,
+};
+/** From this many hours to recover, the PCP prefers an extra slaughter day to overtime spread over the next days. */
+export const PREFER_EXTRA_DAY_H = 6;
+/** Overtime per day the PCP used in the synthetic history of the month. */
+export const HISTORY_OVERTIME_H = 2;
+/** One extra-day shift (hours) and the birds it slaughters at the planning rate. */
+export const EXTRA_SHIFT_H = SHIFTS[0][1] - SHIFTS[0][0];
+export const EXTRA_SHIFT_BIRDS = Math.round((EXTRA_SHIFT_H * PLAN_RATE) / 100) * 100;
 
 /** Main causes of lost slaughter in the synthetic history of the month (illustrative). */
 export const PLAN_LOSS_CAUSES = [

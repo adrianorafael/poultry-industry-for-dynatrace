@@ -23,8 +23,9 @@ A versão aqui precisa ser igual a `app.config.json` → `app.version`, que é a
   porto de Paranaguá.
 - **Plano PCP:** calendário diário do mês com o plano de aves e de kg por dia útil (feriados nacionais
   incluídos), realizado e aderência, projeção do fechamento do dia e do mês, custo de cada incidente em
-  horas de abate e recomendação do PCP — hora extra hoje ou nos próximos dias (até 2 h/dia, CLT art. 59)
-  ou sábado extra — com aprovação em um clique, também pela Dynatrace Intelligence e pela tecla H.
+  horas de abate e recomendação do PCP — hora extra hoje ou nos próximos dias ou dia extra de abate —
+  com aprovação em um clique, também pela Dynatrace Intelligence e pela tecla H. Limite de hora extra e
+  turnos do dia extra configuráveis (regras trabalhistas ficam com o RH).
   Dia de produção de 03:00 às 03:00; dias anteriores à sessão vêm de um histórico sintético e determinístico.
 - Faixa de KPIs: saúde da cadeia, aves abatidas (com a aderência ao plano do PCP), ritmo do abate, rendimento de carcaça, DOA + condenação
   total (métrica de perda, nunca verde), câmara fria, produto acabado, expedido e autorização da NF-e.

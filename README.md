@@ -18,7 +18,7 @@ demonstrações a clientes e roda sobre **dados simulados** de uma **empresa fic
 > **English summary.** A demo Dynatrace App (Portuguese UI) that animates a Brazilian poultry
 > slaughterhouse chain — live-bird scale, slaughter lines, yield and condemnations, freezing tunnels,
 > cold store, docks, finished-goods scale, NF-e (SEFAZ) and domestic/export shipping — measured against
-> the production plan (PCP: daily birds and kg, monthly goal, overtime or Saturday shifts to recover) —
+> the production plan (PCP: daily birds and kg, monthly goal, configurable overtime or extra slaughter days to recover) —
 > with seven scripted bottleneck scenarios explained by a simulated Dynatrace Intelligence layer.
 > Simulated data, fictitious company, no scopes, no DQL.
 
@@ -219,13 +219,15 @@ isso é uma mudança de versão MAJOR.
 - **Hoje:** aves e produto contra o plano **até agora**, fechamento projetado do dia e plano × realizado
   por hora. **Mês:** aderência até agora, projeção do fechamento contra a meta e as curvas acumuladas.
 - **Recomendação do PCP:** quando o dia ou o mês ficam para trás, quanto falta em aves e em horas de abate
-  e o caminho — **hora extra** hoje ou nos próximos dias úteis (até 2 h por dia, CLT art. 59) ou
-  **sábado extra** (um turno ≈ 127,6 mil aves). Aplicar a recomendação, ajustar a hora extra em passos de
-  15 min ou programar sábados muda a planta: o turno 2 passa da meia-noite e o abate continua.
+  e o caminho — **hora extra** hoje ou nos próximos dias úteis ou um **dia extra** de abate (sábado,
+  domingo ou feriado). Aplicar a recomendação, ajustar a hora extra em passos de 15 min ou programar dias
+  extras (também clicando no calendário) muda a planta: o turno 2 passa da meia-noite e o abate continua.
+- **Configuração do PCP:** limite de hora extra por dia (livre até as 03:00, 1 h, 2 h ou 3 h) e turnos do
+  dia extra (1 ou 2). Regras de jornada e pagamento são do RH: o app aceita o que estiver configurado.
 - Cada incidente que tira aves da linha mostra o custo em **horas de abate no plano**, e a Dynatrace
   Intelligence abre a previsão *Plano do PCP em risco* com o botão de aprovar a hora extra.
 - Dia de produção de **03:00 às 03:00**. Os dias anteriores à sessão vêm de um histórico sintético e
-  determinístico (perdas, horas extras e sábados extras); o mês anterior aparece fechado.
+  determinístico (perdas, horas extras e dias extras); o mês anterior aparece fechado.
 
 ### Vendas e expedição
 - Exportação por país, mercado interno por UF, exportação × mercado interno, mix de produtos expedidos,
@@ -252,7 +254,7 @@ isso é uma mudança de versão MAJOR.
 | 7 | Certificado digital A1 vencido | Toda NF-e rejeitada (cStat 281) até instalar o certificado renovado |
 
 - Painel do apresentador (**P**): cenários, velocidade 1× / 10× / 60×, hora simulada, semente, reinício
-  do dia, aprovação da hora extra / sábado extra do PCP (**H**), link opcional para um dashboard e tour
+  do dia, aprovação da hora extra / dia extra do PCP (**H**), link opcional para um dashboard e tour
   automático de 6 minutos.
 - **Fontes Dynatrace** (**D**): de onde viria cada painel na vida real. Resumo (**R**), modo TV (**T**),
   pausa (**Espaço**).
@@ -359,7 +361,7 @@ analyzed"* do seu contrato — o valor depende inteiramente da sua tabela de pre
 | As linhas estão paradas e quase nada se mexe | É noite no seu fuso (higienização): escolha 10:00 ou 17:00 na hora simulada do painel do apresentador. |
 | Nada se mexe | A simulação está pausada (Espaço) ou a velocidade está em 1×; use 60×. |
 | O Plano PCP não recomenda nada depois de um incidente | O mês já estava à frente da meta e o dia ainda fecha dentro da tolerância (15 min de abate). Deixe o incidente correr mais ou dispare o 3 (túnel) por ~1 h de planta. |
-| A hora extra não pode ser aprovada | O abate do dia já terminou (higienização): a hora extra só estende o turno que ainda está rodando. |
+| A hora extra não pode ser aprovada | O abate do dia já terminou (higienização), ou a hora extra chegou ao limite configurado no Plano PCP ou às 03:00, quando começa o próximo dia de produção. |
 | O cenário da SEFAZ não retém nenhuma carga | Não havia carga sendo faturada naquele momento: dispare-o às 10:00 ou 17:00, quando as cargas do pico chegam à balança. |
 | As animações pesam em um notebook lento | Use 10×, evite combinar cenários ou ative "reduzir movimento" no sistema (o app desliga as partículas e o fluxo das esteiras). |
 | Botão "Abrir dashboard" não aparece | Cole o ID de um documento de dashboard no painel do apresentador; o botão só aparece quando preenchido. |

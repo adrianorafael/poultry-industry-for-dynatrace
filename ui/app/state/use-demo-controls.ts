@@ -124,7 +124,7 @@ export function useTour(): { caption: string | null; running: boolean; start: ()
       },
       {
         at: 200,
-        caption: () => `Hora extra aprovada com um clique: o abate de hoje vai até ${fmtHour(engine.getSnapshot().pcp.today.endHour)}, dentro do limite de 2 h da CLT.`,
+        caption: () => `Hora extra aprovada com um clique: o abate de hoje vai até ${fmtHour(engine.getSnapshot().pcp.today.endHour)} e o plano do dia fecha.`,
         run: () => {
           const pcp = engine.getSnapshot().pcp;
           engine.approveOvertime(pcp.today.extraH + (pcp.recovery.suggestTodayH > 0 ? pcp.recovery.suggestTodayH : 0.5));
